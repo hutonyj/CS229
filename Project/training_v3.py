@@ -6,11 +6,12 @@ import pandas as pd
 import seaborn as sns
 from sklearn import ensemble
 from sklearn import svm
+from sklearn import tree
 from sklearn.metrics import mean_squared_error
 # models
 from sklearn.linear_model import LogisticRegression
 # prep
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 
 # validation libraries
 
@@ -22,6 +23,7 @@ def train(X, y, lm):
 
     try:
         print("train score is {}".format(lm.score(X_train, y_train)))
+        print("5-fold cross_val score is {}".format(np.mean(cross_val_score(lm, X_train, y_train, cv=5))))
         print("test score is {}".format(lm.score(X_valid, y_valid)))
     except():
         print("no support for score")
@@ -137,30 +139,34 @@ if __name__ == "__main__":
     X = train_df[feature_cols]
     y = train_df['sustained_average_1_to_130_days_later']
 
-    print("Sample size is", train_df.shape[0], "with threshold", PCT_CHANGE_THRESHOLD)
-    # -- logistic regression
-    print("-- logistic regression")
-    print("sustained_average_1_to_130_days_later")
-    print("baseline is {}".format(sum(y == 1) / len(y)))
-    train(X, y, LogisticRegression(solver='lbfgs'))
-    print()
 
+    print("Sample size is", train_df.shape[0], "with threshold", PCT_CHANGE_THRESHOLD)
+    print("sustained_average_1_to_130_days_later baseline is {}".format(sum(y == 1) / len(y)))
+    print()
 
     #-- SVM
     print("-- SVM")
-    print("sustained_average_1_to_130_days_later")
-    print("baseline is {}".format(sum(y == 1) / len(y)))
     train(X, y, svm.SVC(gamma="scale"))
-    print()
 
     #--gradient boosting
-    print("-- SVM")
-    print("sustained_average_1_to_130_days_later")
-    print("baseline is {}".format(sum(y == 1) / len(y)))
+    print("-- SVM gradient boosting")
     params = {'n_estimators': 500, 'max_depth': 4, 'min_samples_split': 2,
               'learning_rate': 0.01, 'loss': 'ls'}
     clf = ensemble.GradientBoostingRegressor(**params)
     train_gridient_boost(X, y, clf)
 
+    # -- logistic regression
+    print("-- logistic regression")
+    train(X, y, LogisticRegression(solver='lbfgs', max_iter=1000, C=3))
 
+    #-- Decision tree
+    print("-- Decision Tree")
+    train(X,y,tree.DecisionTreeClassifier(max_depth = 8, min_samples_split = 24))
 
+    #-- Bagging
+    print("-- Decision Tree Bagging (Generalization of Random Forest)")
+    train(X,y,ensemble.BaggingClassifier(tree.DecisionTreeClassifier(max_depth = 8, min_samples_split = 12), n_estimators = 100, max_samples = 0.9, max_features = 0.9))
+
+    #-- Extremely Randomized Trees
+    print("-- Extremely Randomized Trees")
+    train(X,y,ensemble.ExtraTreesClassifier(n_estimators = 1000, max_depth = 12, min_samples_split = 16, max_features = 0.5))
