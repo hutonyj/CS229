@@ -1,27 +1,18 @@
-import pandas as pd
-import numpy as np
 import itertools
+
 import matplotlib.pyplot as plt
-
-# prep
-from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
-from sklearn.preprocessing import LabelEncoder, StandardScaler, MaxAbsScaler, QuantileTransformer
-
-# models
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV, LinearRegression, Ridge, RidgeCV
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
-
-# validation libraries
-from sklearn import metrics
-
-from sklearn import svm, metrics
-from sklearn.neighbors import NearestNeighbors, KNeighborsClassifier
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import figure
 import pandas as pd
 import seaborn as sns
+from sklearn import ensemble
+from sklearn import svm
+from sklearn.metrics import mean_squared_error
+# models
+from sklearn.linear_model import LogisticRegression
+# prep
+from sklearn.model_selection import train_test_split
+
+# validation libraries
 
 PCT_CHANGE_THRESHOLD = 0.02
 
@@ -43,6 +34,47 @@ def train(X, y, lm):
     # Plot non-normalized confusion matrix
     # plot_confusion_matrix(cnf_matrix, classes=['No', 'Yes'],
     #                       title='Confusion matrix, without normalization')
+
+
+def train_gridient_boost(X,y,lm):
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
+    clf.fit(X_train, y_train)
+    mse = mean_squared_error(y_valid, lm.predict(X_valid))
+    print("MSE: %.4f" % mse)
+
+    # #############################################################################
+    # Plot training deviance
+
+    # compute test set deviance
+    test_score = np.zeros((params['n_estimators'],), dtype=np.float64)
+
+    for i, y_pred in enumerate(clf.staged_predict(X_valid)):
+        test_score[i] = clf.loss_(y_valid, y_pred)
+
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    plt.title('Deviance')
+    plt.plot(np.arange(params['n_estimators']) + 1, clf.train_score_, 'b-',
+             label='Training Set Deviance')
+    plt.plot(np.arange(params['n_estimators']) + 1, test_score, 'r-',
+             label='Test Set Deviance')
+    plt.legend(loc='upper right')
+    plt.xlabel('Boosting Iterations')
+    plt.ylabel('Deviance')
+
+    # #############################################################################
+    # Plot feature importance
+    feature_importance = clf.feature_importances_
+    # make importances relative to max importance
+    feature_importance = 100.0 * (feature_importance / feature_importance.max())
+    sorted_idx = np.argsort(feature_importance)
+    pos = np.arange(sorted_idx.shape[0]) + .5
+    plt.subplot(1, 2, 2)
+    plt.barh(pos, feature_importance[sorted_idx], align='center')
+    plt.yticks(pos, X.columns[sorted_idx])
+    plt.xlabel('Relative Importance')
+    plt.title('Variable Importance')
+    plt.show()
 
 
 def plot_confusion_matrix(cm, classes,
@@ -120,3 +152,15 @@ if __name__ == "__main__":
     print("baseline is {}".format(sum(y == 1) / len(y)))
     train(X, y, svm.SVC(gamma="scale"))
     print()
+
+    #--gradient boosting
+    print("-- SVM")
+    print("sustained_average_1_to_130_days_later")
+    print("baseline is {}".format(sum(y == 1) / len(y)))
+    params = {'n_estimators': 500, 'max_depth': 4, 'min_samples_split': 2,
+              'learning_rate': 0.01, 'loss': 'ls'}
+    clf = ensemble.GradientBoostingRegressor(**params)
+    train_gridient_boost(X, y, clf)
+
+
+
