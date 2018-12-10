@@ -183,14 +183,38 @@ if __name__ == "__main__":
     xgboost_clf = xgboost.XGBClassifier(**xgboost_params)
     train(X,y,xgboost_clf)
 
-    #-- Hard Voting
-    print("-- Voting Classifier (Hard)")
+    #-- Hard Voting with bagging, xgboost, and logistic
+    print("-- Voting Classifier (Hard) with bagging, xgboost, and logistic")
     hard_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
     ('logistic', logistic_clf), ('xgboost', xgboost_clf)], voting='hard')
     train(X,y,hard_voting_clf)
 
-    #-- Soft Voting
-    print("-- Voting Classifier (Soft)")
+    #-- Soft Voting with bagging, xgboost, and logistic
+    print("-- Voting Classifier (Soft) with bagging, xgboost, and logistic")
     soft_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
     ('logistic', logistic_clf), ('xgboost', xgboost_clf)], voting='soft')
+    train(X,y,soft_voting_clf)
+
+    #-- Hard Voting  with bagging, xgboost
+    print("-- Voting Classifier (Hard) with bagging, xgboost")
+    hard_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
+    ('xgboost', xgboost_clf)], voting='hard')
+    train(X,y,hard_voting_clf)
+
+    #-- Soft Voting  with bagging, xgboost
+    print("-- Voting Classifier (Soft) with bagging, xgboost")
+    soft_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
+    ('xgboost', xgboost_clf)], voting='soft')
+    train(X,y,soft_voting_clf)
+
+    #-- Hard Voting  with bagging, xgboost, extremely randomized trees
+    print("-- Voting Classifier (Hard) with bagging, xgboost, ertrees")
+    hard_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
+    ('xgboost', xgboost_clf), ('ertrees', ertrees_clf)], voting='hard')
+    train(X,y,hard_voting_clf)
+
+    #-- Soft Voting  with bagging, xgboost, extremely randomized trees
+    print("-- Voting Classifier (Soft) with bagging, xgboost, ertrees")
+    soft_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
+    ('xgboost', xgboost_clf), ('ertrees', ertrees_clf)], voting='soft')
     train(X,y,soft_voting_clf)
