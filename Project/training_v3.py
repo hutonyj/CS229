@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import xgboost
 from sklearn import ensemble
 from sklearn import svm
 from sklearn import tree
@@ -11,7 +12,9 @@ from sklearn.metrics import mean_squared_error
 # models
 from sklearn.linear_model import LogisticRegression
 # prep
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
+
+
 
 # validation libraries
 
@@ -22,9 +25,11 @@ def train(X, y, lm):
     lm.fit(X_train, y_train)
 
     try:
-        print("train score is {}".format(lm.score(X_train, y_train)))
-        print("5-fold cross_val score is {}".format(np.mean(cross_val_score(lm, X_train, y_train, cv=5))))
-        print("test score is {}".format(lm.score(X_valid, y_valid)))
+        print("train score: %.2f%%" % (lm.score(X_train, y_train) * 100))
+        kfold = KFold(n_splits=10, shuffle=True)
+        results = cross_val_score(lm, X_train, y_train, cv=kfold)
+        print("10-fold cross_val score: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100))
+        #print("test score is {}".format(lm.score(X_valid, y_valid)))
     except():
         print("no support for score")
 
@@ -38,7 +43,7 @@ def train(X, y, lm):
     #                       title='Confusion matrix, without normalization')
 
 
-def train_gridient_boost(X,y,lm):
+def train_gradient_boost(X,y,lm):
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
     clf.fit(X_train, y_train)
     mse = mean_squared_error(y_valid, lm.predict(X_valid))
@@ -144,29 +149,48 @@ if __name__ == "__main__":
     print("sustained_average_1_to_130_days_later baseline is {}".format(sum(y == 1) / len(y)))
     print()
 
-    #-- SVM
-    print("-- SVM")
-    train(X, y, svm.SVC(gamma="scale"))
-
-    #--gradient boosting
-    print("-- SVM gradient boosting")
-    params = {'n_estimators': 500, 'max_depth': 4, 'min_samples_split': 2,
-              'learning_rate': 0.01, 'loss': 'ls'}
-    clf = ensemble.GradientBoostingRegressor(**params)
-    train_gridient_boost(X, y, clf)
+    #-- gradient Boosting
+    print("-- Gradient Boosting")
+    gb_params = {'n_estimators': 360, 'max_depth': 4, 'min_samples_split': 15, 'min_samples_leaf': 1,
+            'learning_rate': 0.01, 'max_features': 'sqrt', 'subsample': 0.8}
+    gb_clf = ensemble.GradientBoostingClassifier(**gb_params)
+    train(X, y, gb_clf)
 
     # -- logistic regression
     print("-- logistic regression")
-    train(X, y, LogisticRegression(solver='lbfgs', max_iter=1000, C=3))
+    logistic_clf = LogisticRegression(solver='lbfgs', max_iter=1000, C=3)
+    train(X, y, logistic_clf)
 
     #-- Decision tree
     print("-- Decision Tree")
-    train(X,y,tree.DecisionTreeClassifier(max_depth = 8, min_samples_split = 24))
+    dt_clf = tree.DecisionTreeClassifier(max_depth = 8, min_samples_split = 24)
+    train(X,y,dt_clf)
 
     #-- Bagging
     print("-- Decision Tree Bagging (Generalization of Random Forest)")
-    train(X,y,ensemble.BaggingClassifier(tree.DecisionTreeClassifier(max_depth = 8, min_samples_split = 12), n_estimators = 100, max_samples = 0.9, max_features = 0.9))
+    bagging_clf = ensemble.BaggingClassifier(tree.DecisionTreeClassifier(max_depth = 8, min_samples_split = 12), n_estimators = 100, max_samples = 0.9, max_features = 0.9)
+    train(X,y,bagging_clf)
 
     #-- Extremely Randomized Trees
     print("-- Extremely Randomized Trees")
-    train(X,y,ensemble.ExtraTreesClassifier(n_estimators = 1000, max_depth = 12, min_samples_split = 16, max_features = 0.5))
+    ertrees_clf = ensemble.ExtraTreesClassifier(n_estimators = 1000, max_depth = 12, min_samples_split = 16, max_features = 0.5)
+    train(X,y,ertrees_clf)
+
+    #-- xgboost
+    print("-- xgboost")
+    xgboost_params = {'n_estimators': 1000, 'max_depth': 6, 'gamma': 10,
+              'learning_rate': 0.1}
+    xgboost_clf = xgboost.XGBClassifier(**xgboost_params)
+    train(X,y,xgboost_clf)
+
+    #-- Hard Voting
+    print("-- Voting Classifier (Hard)")
+    hard_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
+    ('logistic', logistic_clf), ('xgboost', xgboost_clf)], voting='hard')
+    train(X,y,hard_voting_clf)
+
+    #-- Soft Voting
+    print("-- Voting Classifier (Soft)")
+    soft_voting_clf = ensemble.VotingClassifier(estimators=[('bagging', bagging_clf),
+    ('logistic', logistic_clf), ('xgboost', xgboost_clf)], voting='soft')
+    train(X,y,soft_voting_clf)
