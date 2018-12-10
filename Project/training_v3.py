@@ -8,7 +8,7 @@ import xgboost
 from sklearn import ensemble
 from sklearn import svm
 from sklearn import tree
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, confusion_matrix
 # models
 from sklearn.linear_model import LogisticRegression
 # prep
@@ -35,12 +35,11 @@ def train(X, y, lm):
 
     # y_cls_pred = lm.predict(X_valid)
     #
-    # cnf_matrix = metrics.confusion_matrix(y_valid, y_cls_pred)
+    # cnf_matrix = confusion_matrix(y_valid, y_cls_pred)
     # np.set_printoptions(precision=2)
-
-    # Plot non-normalized confusion matrix
-    # plot_confusion_matrix(cnf_matrix, classes=['No', 'Yes'],
-    #                       title='Confusion matrix, without normalization')
+    #
+    # #Plot non-normalized confusion matrix
+    # plot_confusion_matrix(cnf_matrix, normalize = True, classes=['Not Sustained', 'Sustained'])
 
 
 def train_gradient_boost(X,y,lm):
@@ -128,7 +127,7 @@ def get_corr(train_df):
     corr.insert(0, "corr", cor_column)
     # corr.style.background_gradient()
 
-    corr.to_csv("correlation_matrix.csv", encoding='utf-8', index=False)
+    #corr.to_csv("correlation_matrix.csv", encoding='utf-8', index=False)
 
     sns.heatmap(corr,
                 xticklabels=corr.columns,
@@ -151,8 +150,7 @@ if __name__ == "__main__":
 
     #-- gradient Boosting
     print("-- Gradient Boosting")
-    gb_params = {'n_estimators': 360, 'max_depth': 4, 'min_samples_split': 15, 'min_samples_leaf': 1,
-            'learning_rate': 0.01, 'max_features': 'sqrt', 'subsample': 0.8}
+    gb_params = {'n_estimators': 150, 'max_depth': 7, 'min_samples_split': 20, 'min_samples_leaf': 1, 'learning_rate': 0.01}
     gb_clf = ensemble.GradientBoostingClassifier(**gb_params)
     train(X, y, gb_clf)
 
